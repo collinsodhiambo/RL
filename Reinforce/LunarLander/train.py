@@ -24,7 +24,7 @@ gamma = 0.99
 net = PG(input_dims=input_dim, hidden_dim=hidden_dim,
          n_actions=n_actions,device=device, seed=seed)
 
-optimizer = Adam(net.parameters(),lr=lr, weight_decay=lr*10)
+optimizer = Adam(net.parameters(),lr=lr)
 
 def train(episodes = 5000, max_iter = 1000):
     scores = []
