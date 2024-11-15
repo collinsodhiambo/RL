@@ -3,7 +3,7 @@ from model import Policy as PG
 import gymnasium as gym
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-ckpt = torch.load('Lunar_lander_reinforce_1897_steps.pt', weights_only=True,
+ckpt = torch.load('model.pt', weights_only=True,
                   map_location=device)['model_state_dict']
 
 env = gym.make('LunarLander-v2', render_mode = 'human')
