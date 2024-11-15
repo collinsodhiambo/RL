@@ -16,7 +16,7 @@ env.reset(seed=seed)
 
 n_actions = env.action_space.n
 input_dim = env.observation_space.shape[0]
-hidden_dim = 32
+hidden_dim = 64
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 lr = 1e-3
 gamma = 0.99
@@ -72,14 +72,14 @@ def train(episodes = 5000, max_iter = 1000):
         if episode_idx % 100 == 0:
             print(f"Episode: {episode_idx}\tAverage Score: {np.mean(scores_window)}")
         
-        if np.mean(scores_window) >= threshold:
+        if np.mean(scores_window) >= threshold + 29:
             print(f"Episode: {episode_idx}\tAverage Score: {np.mean(scores_window)}")
             print(f"Environment solved in {episode_idx} steps! Mean score: {np.mean(scores_window)}")
 
             data = {
                 'model_state_dict':net.state_dict()
             }
-            torch.save(data, f"Lunar_lander_reinforce_{episode_idx}_steps.pt")
+            torch.save(data, f"model.pt")
             break
 
     return scores
@@ -90,3 +90,4 @@ plt.plot(np.arange(len(scores)), scores)
 plt.xlabel("# Episodes")
 plt.ylabel("Scores")
 plt.savefig("Lunar_lander_reinforce_results.png")
+plt.show()
