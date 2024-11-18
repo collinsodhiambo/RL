@@ -50,11 +50,11 @@ def train(episodes = 5000, max_iter = 1000):
         scores_window.append(score)
 
         discounted_rewards = []
-        for t in range(len(rewards)):
-            Gt = 0
-            for i, r in enumerate(rewards[t:]):
-                Gt += gamma ** i * r
-            discounted_rewards.append(Gt)
+        
+        Gt = 0
+        for r in reversed(rewards):
+            Gt = r + gamma * Gt
+            discounted_rewards.insert(0, Gt)
             
         discounted_rewards =  torch.tensor(discounted_rewards)
         discounted_rewards = (discounted_rewards - discounted_rewards.mean())/ (discounted_rewards.std() + 1e-9)
