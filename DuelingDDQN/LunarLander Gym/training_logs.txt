@@ -1,0 +1,2 @@
+Episode 0	Average Score: -249.73	Epsilon: 0.99Episode 100	Average Score: -102.60	Epsilon: 0.36237201786049694Episode 200	Average Score: 110.50	Epsilon: 0.13263987810938213
+Environment solved in 266 episodes!	Average Score: 201.01
