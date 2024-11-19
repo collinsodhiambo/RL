@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 seed = 42
-name = 'CartPole-v0'
+name = 'CartPole-v1'
 env = gym.make(name)
 state, _ = env.reset(seed=seed)
 reward_threshold = gym.envs.registry.get(name, 195.0).reward_threshold
