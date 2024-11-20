@@ -7,27 +7,31 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 seed = 42
+torch.manual_seed(seed)
+np.random.seed(seed=seed)
 name = 'CartPole-v1'
 env = gym.make(name)
 state, _ = env.reset(seed=seed)
-reward_threshold = gym.envs.registry.get(name, 195.0).reward_threshold
+reward_threshold = gym.envs.registry.get(name).reward_threshold
 max_iter = gym.envs.registry.get(name, 500).max_episode_steps
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-input_dim = env.observation_space.shape
-hidden_dim = 64
+input_dim = env.observation_space.shape[0]
+hidden_dim = 128
 num_actions = env.action_space.n
 
 lr = 2e-3
 gamma = 0.99
-BETA = 1e-2 # for exploration
+BETA = 1e-3 # for exploration
 CLIP = 10.0 # for gradient clip
 net = A2C(in_features=input_dim, out_features=hidden_dim, num_actions=num_actions,
           device=device, seed = seed)
 optimizer = Adam(net.parameters(), lr=lr, eps=1e-8)
 
 def train(max_episodes = 5000, max_iter = 500):
+    print('[INFO]: Training')
     reward_window = deque(maxlen=100)
     scores = []
+    entropy_term = 0.0
 
     for episode in range(1, max_episodes + 1):
         state, _ = env.reset()
@@ -35,14 +39,13 @@ def train(max_episodes = 5000, max_iter = 500):
         rewards = []
         values = []
         score = 0.0
-        entropy_term = 0.0
 
         for i in range(max_iter):
             logits, value = net(state)
             value = value.detach().numpy()[0,0]
             dist = logits.detach().numpy()
 
-            action = np.random.choice(dist, p=np.squeeze(dist))
+            action = np.random.choice(num_actions, p=np.squeeze(dist))
             log_prob = torch.log(logits.squeeze(0)[action])
             entropy = -np.sum(np.mean(dist) * np.log(dist))
 
@@ -53,8 +56,9 @@ def train(max_episodes = 5000, max_iter = 500):
             log_probs.append(log_prob)
             entropy_term += entropy
 
-            if done or trunc:
-                R = 0
+            if done or trunc or i == max_iter:
+                R, _ = net(state)
+                R = R.detach().numpy()[0,0]
                 break
         scores.append(score)
         reward_window.append(score)
@@ -67,7 +71,7 @@ def train(max_episodes = 5000, max_iter = 500):
 
         values = torch.FloatTensor(values)
         disc_rewards = torch.FloatTensor(disc_rewards)
-        log_probs = torch.cat(log_probs)
+        log_probs = torch.stack(log_probs)
 
         advantage = disc_rewards - values
         actor_loss = -(advantage * log_probs).mean()
@@ -77,31 +81,28 @@ def train(max_episodes = 5000, max_iter = 500):
 
         optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(net.parameters(), CLIP)
         optimizer.step()
 
         if episode % 100 == 0:
-            print(f"Episode: {episode}\tAverage Reward: {np.mean(reward_window)}\t"
-                  f"Critic Loss: {critic_loss.item()}\tActor Loss: {actor_loss.item()}\t"
-                  f"Total Loss: {loss.item()}\tEntropy: {entropy_term}")
+            print(f"Episode: {episode}\tAverage Reward: {np.mean(reward_window)}")
         if np.mean(reward_window) >= reward_threshold:
-            print(f"Episode: {episode}\tAverage Reward: {np.mean(reward_window)}\t"
-                  f"Critic Loss: {critic_loss.item()}\tActor Loss: {actor_loss.item()}\t"
-                  f"Total Loss: {loss.item()}\tEntropy: {entropy_term}")
+            print(f"Episode: {episode}\tAverage Reward: {np.mean(reward_window)}")
             print(f"Environment solved in {episode} steps! Mean reward: {np.mean(reward_window)}")
             torch.save(net.state_dict(), 'model.pt')
             break
 
     return scores
 
-scores = train()
+scores = train(max_iter=max_iter)
 running_mean = [scores[0]]
-p = 0.9
+p = 0.7
 for score in scores:
     running_mean.append(p * running_mean[-1] + (1-p) * score)
 running_mean = running_mean[1:]
 
 plt.plot(np.arange(len(scores)), scores, label = 'score')
-plt.plt(np.arange(len(scores)), running_mean, label = 'running_mean')
+plt.plot(np.arange(len(scores)), running_mean, label = 'running_mean')
 plt.xlabel("# Episodes")
 plt.ylabel("# Score")
 plt.savefig('scores.png')
