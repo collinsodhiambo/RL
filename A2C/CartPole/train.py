@@ -19,10 +19,10 @@ input_dim = env.observation_space.shape[0]
 hidden_dim = 128
 num_actions = env.action_space.n
 
-lr = 2e-3
+lr = 5e-3
 gamma = 0.99
-BETA = 1e-3 # for exploration
-CLIP = 10.0 # for gradient clip
+BETA = 1e-2 # for exploration
+CLIP = 1.5 # for gradient clip
 net = A2C(in_features=input_dim, out_features=hidden_dim, num_actions=num_actions,
           device=device, seed = seed)
 optimizer = Adam(net.parameters(), lr=lr, eps=1e-8)
@@ -71,6 +71,7 @@ def train(max_episodes = 5000, max_iter = 500):
 
         values = torch.FloatTensor(values)
         disc_rewards = torch.FloatTensor(disc_rewards)
+        disc_rewards = (disc_rewards - disc_rewards.mean()) / (disc_rewards.std() + 1e-8)
         log_probs = torch.stack(log_probs)
 
         advantage = disc_rewards - values
