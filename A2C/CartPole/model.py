@@ -15,7 +15,7 @@ class A2C(nn.Module):
 
     def forward(self, state):
         x = torch.FloatTensor(state, device=self.device).unsqueeze(0)
-        common = F.relu(self.backbone(state))
+        common = F.relu(self.backbone(x))
         v = self.value_head(common)
         policy_dist = F.softmax(self.policy_head(common), dim=1)
         return policy_dist, v
