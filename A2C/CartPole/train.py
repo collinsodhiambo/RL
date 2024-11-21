@@ -57,7 +57,7 @@ def train(max_episodes = 5000, max_iter = 500):
             entropy_term += entropy
 
             if done or trunc or i == max_iter:
-                R, _ = net(state)
+                R = net(state)[1]
                 R = R.detach().numpy()[0,0]
                 break
         scores.append(score)
