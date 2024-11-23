@@ -22,7 +22,7 @@ num_actions = env.action_space.n
 lr = 5e-3
 gamma = 0.99
 BETA = 1e-2 # for exploration
-CLIP = 1.5 # for gradient clip
+CLIP = 0.1 # for gradient clip
 net = A2C(in_features=input_dim, out_features=hidden_dim, num_actions=num_actions,
           device=device, seed = seed)
 optimizer = Adam(net.parameters(), lr=lr, eps=1e-8)
