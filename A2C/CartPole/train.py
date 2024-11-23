@@ -12,8 +12,8 @@ np.random.seed(seed=seed)
 name = 'CartPole-v1'
 env = gym.make(name)
 state, _ = env.reset(seed=seed)
-reward_threshold = gym.envs.registry.get(name).reward_threshold
-max_iter = gym.envs.registry.get(name, 500).max_episode_steps
+reward_threshold = env.spec.reward_threshold
+max_iter = env.spec.max_episode_steps
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 input_dim = env.observation_space.shape[0]
 hidden_dim = 128
