@@ -31,7 +31,6 @@ def train(max_episodes = 5000, max_iter = 500):
     print('[INFO]: Training')
     reward_window = deque(maxlen=100)
     scores = []
-    entropy_term = 0.0
 
     for episode in range(1, max_episodes + 1):
         state, _ = env.reset()
@@ -39,6 +38,7 @@ def train(max_episodes = 5000, max_iter = 500):
         rewards = []
         values = []
         score = 0.0
+        entropy_term = 0.0
 
         for i in range(max_iter):
             logits, value = net(state)
