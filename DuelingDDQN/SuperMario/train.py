@@ -9,13 +9,12 @@ import numpy as np
 import torch
 from collections import deque
 
-env = gsmb.make("SuperMarioBros-v0", apply_api_compatibility = True, render_mode = 'human')
+env = gsmb.make("SuperMarioBros-v0")
 env.reset(seed = 72)
 env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
 env = ResizeObservation(env, 84)
 env = GrayScaleObservation(env)
-#env.metadata['video.frames_per_second'] = 120
 
 class SkipFrame(gym.Wrapper):
     def __init__(self, env, skip):
@@ -40,11 +39,11 @@ input_dim = env.observation_space.shape
 action_dim = env.action_space.n
 hidden_dim = 64
 lr = 5e-4
-buffer_size = int(1e5)
+buffer_size = int(32e3)
 batch_size = 32
 TAU = 1e-2
 GAMMA = 0.99
-CLIP = 10.0
+CLIP = 0.1
 LEARN_EVERY = 4
 seed = 1
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -57,8 +56,7 @@ print("Model parameters: ", sum([p.numel() for p in net.local_model.parameters()
 
 
 
-def train(episodes = 1, max_iter = 5000, eps = 0.01):
-    #/kaggle/input/ddqn9/pytorch/default/1/
+def train(episodes = 1000, max_iter = 5000, eps = 0.01):
     ckpt = torch.load("net_checkpoint_episodes_301.pt", map_location = device, weights_only = True)
     net.local_model.load_state_dict(ckpt['model_state_dict'])
     net.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
@@ -71,15 +69,14 @@ def train(episodes = 1, max_iter = 5000, eps = 0.01):
     for i_episode in range(300, episodes):
         state = env.reset()
         total_reward = 0
-        state, info = env.reset()
 
         for k in range(max_iter):
             #env.render()
             action = net.act(np.array(state), eps)
-            next_state, reward, done, trunc,info = env.step(action)
+            next_state, reward, done, info = env.step(action)
             net.step(np.array(state), action, reward, np.array(next_state), done)
             total_reward += reward
-            if (done or trunc):
+            if done:
                 break
             state = next_state
         scores_window.append(total_reward)
@@ -93,40 +90,30 @@ def train(episodes = 1, max_iter = 5000, eps = 0.01):
 
             data = {"model_state_dict" : net.local_model.state_dict(),
                     "optimizer_state_dict" : net.optimizer.state_dict()}
-            name = f"net_checkpoint_episodes_{i_episode}.pt"
+            name = f"model.pt"
             torch.save(data, name)
     env.close()
             
     return scores
 
 def play(n = 1):
-    ckpt = torch.load("net_checkpoint_episodes_650.pt", map_location=device, weights_only = True)
+    ckpt = torch.load("model.pt", map_location=device, weights_only = True)
     net.local_model.load_state_dict(ckpt["model_state_dict"])
     for i in range(n):
         total_reward = 0.0
-        state, info = env.reset()
+        state = env.reset()
         score = 0
         env.render()
         while True:
             action = net.act(np.array(state))
-            state, reward, done, trunc, info = env.step(action)
-            #print(info)
-            
-            #new_score = info['score']
-            #if new_score != score:
-             #   score = new_score
-                
-            #if info['flag_get']:
-                #score += 500
-            
-            #reward += score
+            state, reward, done, info = env.step(action)
+
             total_reward += reward
-            if (done or trunc):
+            if done:
                 break
         
         print(total_reward)
     env.close()
 
 play(2)
-import code
-code.interact(local=locals())
+
