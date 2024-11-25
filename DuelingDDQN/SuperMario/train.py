@@ -1,6 +1,5 @@
-import gym as gym
+import gym
 from gym.wrappers import FrameStack, GrayScaleObservation, ResizeObservation
-from gym.spaces import Box
 import gym_super_mario_bros as gsmb
 from agent import SuperMarioAgent as net
 from nes_py.wrappers import JoypadSpace
@@ -9,7 +8,7 @@ import numpy as np
 import torch
 from collections import deque
 
-env = gsmb.make("SuperMarioBros-v0")
+env = gsmb.make("SuperMarioBros-v0", new_step_api = True)
 env.reset(seed = 72)
 env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
@@ -19,7 +18,7 @@ env = GrayScaleObservation(env)
 class SkipFrame(gym.Wrapper):
     def __init__(self, env, skip):
         """Return only every `skip`-th frame"""
-        super().__init__(env)
+        super().__init__(env, new_step_api = True)
         self._skip = skip
 
     def step(self, action):
@@ -27,13 +26,13 @@ class SkipFrame(gym.Wrapper):
         total_reward = 0.0
         for i in range(self._skip):
             # Accumulate reward and repeat the same action
-            obs, reward, done, trunc, info = self.env.step(action)
+            obs, reward, done, trunc,info = self.env.step(action)
             total_reward += reward
             if done:
                 break
-        return obs, total_reward, done, trunc,info
+        return obs, total_reward, done, trunc, info
 env = SkipFrame(env, skip=4)   
-env = FrameStack(env, num_stack=4)
+env = FrameStack(env, num_stack=4, new_step_api = True)
 
 input_dim = env.observation_space.shape
 action_dim = env.action_space.n
@@ -56,27 +55,31 @@ print("Model parameters: ", sum([p.numel() for p in net.local_model.parameters()
 
 
 
-def train(episodes = 1000, max_iter = 5000, eps = 0.01):
-    ckpt = torch.load("net_checkpoint_episodes_301.pt", map_location = device, weights_only = True)
-    net.local_model.load_state_dict(ckpt['model_state_dict'])
-    net.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+def train(episodes = 1000, max_iter = 5000, eps = 1.0, load_model = True):
+    if load_model:
+        print('[INFO]: Loading model...')
+        ckpt = torch.load("model.pt", map_location = device, weights_only = True)
+        net.local_model.load_state_dict(ckpt['model_state_dict'])
+        net.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+        print('Done.')
+
     print("[INFO]: Training...")
     scores = []
     scores_window = deque(maxlen=100)
     episode_len = deque(maxlen=100)
+    life = 2
     
 
-    for i_episode in range(300, episodes):
+    for i_episode in range(episodes):
         state = env.reset()
         total_reward = 0
 
         for k in range(max_iter):
-            #env.render()
             action = net.act(np.array(state), eps)
-            next_state, reward, done, info = env.step(action)
-            net.step(np.array(state), action, reward, np.array(next_state), done)
+            next_state, reward, done, trunc, info = env.step(action)
+            net.step(np.array(state), action, reward, np.array(next_state), done or trunc)
             total_reward += reward
-            if done:
+            if (info['life'] != life or  (done or trunc)):
                 break
             state = next_state
         scores_window.append(total_reward)
@@ -97,19 +100,18 @@ def train(episodes = 1000, max_iter = 5000, eps = 0.01):
     return scores
 
 def play(n = 1):
-    ckpt = torch.load("model.pt", map_location=device, weights_only = True)
+    ckpt = torch.load("net_checkpoint_episodes_650.pt", map_location=device, weights_only = True)
     net.local_model.load_state_dict(ckpt["model_state_dict"])
     for i in range(n):
         total_reward = 0.0
         state = env.reset()
-        score = 0
-        env.render()
         while True:
+            env.render()
             action = net.act(np.array(state))
-            state, reward, done, info = env.step(action)
+            state, reward, done,trunc, info = env.step(action)
 
             total_reward += reward
-            if done:
+            if (info['life'] != 2 or (done or trunc)):
                 break
         
         print(total_reward)
