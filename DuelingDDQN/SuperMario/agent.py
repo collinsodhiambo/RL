@@ -64,7 +64,7 @@ class SuperMarioAgent:
 
         self.cur_step += 1
         if self.cur_step % self.LEARN_EVERY == 0:
-            if len(self.memory) > 4 * self.batch_size:
+            if len(self.memory) > self.batch_size:
                 self.learn()
 
     def learn(self):
