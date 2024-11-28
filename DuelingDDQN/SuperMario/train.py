@@ -100,7 +100,7 @@ def train(episodes = 1000, max_iter = 5000, eps = 1.0, load_model = True):
     return scores
 
 def play(n = 1):
-    ckpt = torch.load("model.pt", map_location=device, weights_only = True)
+    ckpt = torch.load("model_650.pt", map_location=device, weights_only = True)
     net.local_model.load_state_dict(ckpt["model_state_dict"])
     for i in range(n):
         total_reward = 0.0
