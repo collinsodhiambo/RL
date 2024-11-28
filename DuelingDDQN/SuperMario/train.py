@@ -38,15 +38,15 @@ input_dim = env.observation_space.shape
 action_dim = env.action_space.n
 hidden_dim = 64
 lr = 5e-4
-buffer_size = int(32e3)
-batch_size = 32
+buffer_size = int(5e4)
+batch_size = 2048
 TAU = 1e-2
 GAMMA = 0.99
 CLIP = 0.1
 LEARN_EVERY = 4
 seed = 1
 device = "cuda" if torch.cuda.is_available() else "cpu"
-eps_decay = 0.95
+eps_decay = 0.99
 
 net = net(input_dim=input_dim,action_dim=action_dim,hidden_dim=hidden_dim,lr=lr,
           buffer_size=buffer_size,batch_size=batch_size,TAU=TAU,GAMMA=GAMMA,
@@ -100,7 +100,7 @@ def train(episodes = 1000, max_iter = 5000, eps = 1.0, load_model = True):
     return scores
 
 def play(n = 1):
-    ckpt = torch.load("net_checkpoint_episodes_650.pt", map_location=device, weights_only = True)
+    ckpt = torch.load("model.pt", map_location=device, weights_only = True)
     net.local_model.load_state_dict(ckpt["model_state_dict"])
     for i in range(n):
         total_reward = 0.0
